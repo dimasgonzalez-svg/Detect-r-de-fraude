@@ -1,0 +1,34 @@
+import streamlit as st
+import requests
+import base64
+
+st.set_page_config(page_title="Protector Anti-Fraude", page_icon="🛡️")
+st.title("🛡️ Verificador de Enlaces")
+st.write("Pega el enlace sospechoso antes de abrirlo.")
+
+url_usuario = st.text_input("Enlace a analizar:", placeholder="https://")
+
+# Coloca aquí tu llave si ya la tienes, o usa esta de prueba temporal:
+API_KEY = "TU_LLAVE_DE_VIRUSTOTAL_AQUÍ"
+
+if st.button("🔍 Analizar Enlace"):
+    if url_usuario:
+        st.info("Analizando en la nube...")
+        url_id = base64.urlsafe_b64encode(url_usuario.encode()).decode().strip("=")
+        api_url = f"https://virustotal.com{url_id}"
+        headers = {"accept": "application/json", "x-apikey": API_KEY}
+        
+        try:
+            response = requests.get(api_url, headers=headers)
+            if response.status_code == 200:
+                stats = response.json()['data']['attributes']['last_analysis_stats']
+                peligrosos = stats['malicious'] + stats['phishing']
+                if peligrosos > 0:
+                    st.error(f"🚨 ¡PELIGRO! Detectado como FRAUDE o ROBO DE DATOS.")
+                else:
+                    st.success("✅ El enlace parece limpio en las bases de datos.")
+            else:
+                st.warning("Enlace nuevo registrado. Presiona el botón otra vez en 30 segundos.")
+                requests.post("https://virustotal.com", data={"url": url_usuario}, headers=headers)
+        except:
+            st.error("Error al conectar con el servidor de seguridad.")
